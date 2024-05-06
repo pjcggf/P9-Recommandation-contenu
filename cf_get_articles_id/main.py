@@ -1,15 +1,10 @@
 """Fonction de predictions des 5 articles grâce au Collaborative Filtering."""
 import pickle
-import os
 from io import BytesIO
 import flask
 import functions_framework
 from google.cloud import storage
 
-####
-# A définir seulement en test
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '../gcs_reader_cred.json'
-#####
 client_gcs = storage.Client(project='p9-reco-contenu')
 bucket = client_gcs.get_bucket('data-p9-reco')
 
