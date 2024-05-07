@@ -1,2 +1,4 @@
 functions-framework==3.5.0
 pandas
+google-cloud-storage
+watchdog==4.*
