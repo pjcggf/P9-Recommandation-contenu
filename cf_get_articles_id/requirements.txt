@@ -1,4 +1,4 @@
-numpy==1.24
+numpy
 watchdog==4.*
 functions-framework==3.*
 implicit==0.4.8
