@@ -14,7 +14,7 @@ def get_list():
     d'instance (réduit le temps de latence pour les démarrages à froid).'''
     train_raw = BytesIO(bucket.get_blob(
         'train.feather').download_as_bytes())
-    liste = pd.read_feather(BytesIO(train_raw)).user_id.unique()
+    liste = pd.read_feather(train_raw).user_id.unique().tolist()
 
     return liste
 
