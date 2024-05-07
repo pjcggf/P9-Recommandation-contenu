@@ -1,26 +1,13 @@
 """Fonction pour récupérer la liste des id des user"""
-from io import BytesIO
-import random
-import pandas as pd
 import flask
 import functions_framework
-from google.cloud import storage
+from google.cloud import bigquery
 
-client_gcs = storage.Client(project='p9-reco-contenu')
-bucket = client_gcs.get_bucket('data-p9-reco')
+PROJECT = "p9-reco-contenu"
+DATASET = "p9-reco"
+TABLE = "train"
 
-
-def get_list():
-    '''Précharge le jeu de données et récupère la liste comme variable
-    d'instance (réduit le temps de latence pour les démarrages à froid).'''
-    train_raw = BytesIO(bucket.get_blob(
-        'train.feather').download_as_bytes())
-    liste = pd.read_feather(train_raw).user_id.unique().tolist()
-
-    return liste
-
-
-user_list = get_list()
+client = bigquery.Client(project=PROJECT)
 
 
 @functions_framework.http
@@ -34,5 +21,13 @@ def get_user_list(request: flask.Request) -> flask.typing.ResponseReturnValue:
     except TypeError:
         nb = 100
 
-    res = random.sample(user_list, nb)
-    return res
+    query = f"""
+        SELECT user_id
+        FROM {PROJECT}.{DATASET}.{TABLE}
+        ORDER BY RAND()
+        LIMIT {nb}
+        """
+
+    query_job = client.query(query)
+    result = query_job.result()
+    return result
