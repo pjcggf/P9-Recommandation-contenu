@@ -40,7 +40,10 @@ def get_articles_id(request: flask.Request) -> flask.typing.ResponseReturnValue:
     except TypeError:
         n=5
 
-    recommended = model_collab_filtering.recommend(user_id, sparse_matrix, N=n)
-
+    try:
+        recommended = model_collab_filtering.recommend(user_id, sparse_matrix, N=n)
+    except IndexError as e:
+        raise IndexError(f"""Le user_id {user_id} n'existe pas.
+                         Réssayer avec un user_id valide""") from e
     #  Retourne les 5 meilleures recommandations
     return {f'{i}': f"{v}" for i, v in recommended}
