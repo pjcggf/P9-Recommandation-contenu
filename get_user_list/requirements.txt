@@ -2,6 +2,4 @@ functions-framework==3.5.0
 pandas
 google-cloud-bigquery
 watchdog==4.*
-pyarrow
-pandas
 db-dtypes

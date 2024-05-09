@@ -2,32 +2,34 @@
 import flask
 import functions_framework
 from google.cloud import bigquery
-import pandas as pd
 
-    PROJECT = "p9-reco-contenu"
+PROJECT = "p9-reco-contenu"
+DATASET = "p9_reco"
+TABLE = "train"
 
-    client = bigquery.Client(project=PROJECT)
+
+client = bigquery.Client(project=PROJECT)
 
 
-    @functions_framework.http
-    def get_user_list(request: flask.Request) -> flask.typing.ResponseReturnValue:
-        '''
-        Renvoie la liste des ids de users contenue dant train.feather
-        nb: int : nombre de user_id souhaité
-        '''
-        try:
-            nb = int(request.args.get('nb'))
-        except TypeError:
-            nb = 100
+@functions_framework.http
+def get_user_list(request: flask.Request) -> flask.typing.ResponseReturnValue:
+    '''
+    Renvoie la liste des ids de users contenue dant train.feather
+    nb: int : nombre de user_id souhaité
+    '''
+    try:
+        nb = int(request.args.get('nb'))
+    except TypeError:
+        nb = 100
 
-        query = f"""
-            SELECT user_id
-            FROM `p9-reco-contenu.p9_reco.train`
-            ORDER BY RAND()
-            LIMIT {nb}
-            """
-        query_job = client.query(query)
+    query = f"""
+        SELECT user_id
+        FROM `{PROJECT}.{DATASET}.{TABLE}`
+        ORDER BY RAND()
+        LIMIT {nb}
+        """
+    query_job = client.query(query)
 
-        result = query_job.result().to_dataframe()
-        print('im here')
-        return result
+    result = query_job.result().to_dataframe()['user_id'].to_list()
+
+    return result
