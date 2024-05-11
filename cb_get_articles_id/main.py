@@ -1,11 +1,13 @@
 """Prédiction des 5 articles les plus proches des derniers articles lu
     par le user."""
 from io import BytesIO
+import json
 import warnings
 import functions_framework
 from google.cloud import bigquery, storage
 import pandas as pd
 from scipy.spatial import distance
+
 
 
 PROJECT = "p9-reco-contenu"
@@ -79,8 +81,9 @@ def cb_get_articles_id(request):
     try:
         user_id = request.args.get('user_id')
         user_id = int(user_id)
-    except ValueError as e:
-        raise ValueError("Le user_id doit être spécifié") from e
+    except ValueError:
+        warnings.warn('Pas de user_id précisé, prédiction impossible.')
+        return {0: 'Pas de user_id précisé, prédiction impossible.'}
 
     method = request.args.get('method')
     if not method:
@@ -111,6 +114,7 @@ def cb_get_articles_id(request):
 
     res = selection.sort_values(by=['similarity_score'], ascending=False)[
         ['article_id', 'similarity_score']].head(nb_results).to_json()
+    res = json.loads(res)
     res = {res['article_id'][k]: v for k, v in res['similarity_score'].items()}
 
     return res
