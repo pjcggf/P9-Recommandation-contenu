@@ -24,6 +24,16 @@ articles_df = pd.read_feather(articles_df).drop(['created_at_ts',
                                                  'category_id'],
                                                 axis=1)
 
+train_df = None
+
+def get_train_df():
+    """Récupère le train_df uniquement si nécessaire"""
+    train = BytesIO(bucket.get_blob(
+        'train.feather').download_as_bytes())
+    train = pd.read_feather(train)
+
+    return train
+
 
 def user_exist(user_id):
     """Vérifie si le user_id existe dans la base"""
@@ -61,8 +71,8 @@ def get_unread_articles(liste_articles):
     Récupère la liste des articles non lu par le user, leur catégories
     et leur embedding.
     """
-    # Solution non-retenue car temps d'éxecution trop long et trop gourmand en
-    # ressource sur Big Query
+    # Solution non-retenue car temps d'éxecution trop long et trop consommateur
+    # en ressource sur Big Query
     # query = f"""
     #     SELECT article_id
     #     FROM `{PROJECT}.{DATASET}.train`
@@ -126,8 +136,10 @@ def cb_get_articles_id(request):
         query_encoding = articles_df[articles_df['article_id']
                                      == liste_articles[-1]]['embeddings'].item()
     else:
-        query_encoding = articles_df[articles_df['user_id']
-                                     == user_id]['embeddings'].mean()
+        global train_df
+        train_df = get_train_df()
+        query_encoding = train_df[train_df['user_id'] ==
+                                  user_id]['embeddings'].mean()
 
     selection['similarity_score'] = selection['embeddings'].apply(
         lambda x: 1 - distance.cosine(x, query_encoding))
