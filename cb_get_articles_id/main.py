@@ -9,7 +9,6 @@ import pandas as pd
 from scipy.spatial import distance
 
 
-
 PROJECT = "p9-reco-contenu"
 DATASET = "p9_reco"
 
@@ -24,6 +23,21 @@ articles_df = pd.read_feather(articles_df).drop(['created_at_ts',
                                                  'words_count',
                                                  'category_id'],
                                                 axis=1)
+
+
+def user_exist(user_id):
+    """Vérifie si le user_id existe dans la base"""
+    query = f"""
+            SELECT
+                DISTINCT(user_id)
+            FROM
+                `{PROJECT}.{DATASET}.train`
+            WHERE user_id = {user_id}
+            """
+    query_job = client.query(query)
+    result = query_job.result().to_dataframe()
+
+    return result
 
 
 def get_liste_articles(user_id):
@@ -41,13 +55,14 @@ def get_liste_articles(user_id):
 
     return result
 
+
 def get_unread_articles(liste_articles):
     """
     Récupère la liste des articles non lu par le user, leur catégories
     et leur embedding.
     """
-    ## Solution non-retenue car temps d'éxecution trop long et trop gourmand en
-    ## sur Big Query
+    # Solution non-retenue car temps d'éxecution trop long et trop gourmand en
+    # ressource sur Big Query
     # query = f"""
     #     SELECT article_id
     #     FROM `{PROJECT}.{DATASET}.train`
@@ -60,11 +75,10 @@ def get_unread_articles(liste_articles):
     #     WHERE
     #         article_id NOT IN {liste_articles}
     #     """
-    selection = articles_df[~articles_df.article_id.isin(liste_articles)].copy()
+    selection = articles_df[~articles_df.article_id.isin(
+        liste_articles)].copy()
 
     return selection
-
-
 
 
 @functions_framework.http
@@ -81,9 +95,16 @@ def cb_get_articles_id(request):
     try:
         user_id = request.args.get('user_id')
         user_id = int(user_id)
-    except ValueError:
-        warnings.warn('Pas de user_id précisé, prédiction impossible.')
-        return {0: 'Pas de user_id précisé, prédiction impossible.'}
+    except (TypeError, ValueError):
+        warnings.warn(
+            'Pas de user_id précisé ou invalide, prédiction impossible.')
+        res = {0: 'Pas de user_id précisé ou invalide, prédiction impossible.'}
+        return res, 400
+
+    if user_exist(user_id).empty:
+        warnings.warn('User_id inconnu, prédiction impossible.')
+        res = {0: 'User_id inconnu, prédiction impossible.'}
+        return res, 400
 
     method = request.args.get('method')
     if not method:
@@ -99,7 +120,6 @@ def cb_get_articles_id(request):
         nb_results = 5
     nb_results = int(nb_results)
 
-
     liste_articles = get_liste_articles(user_id)
     selection = get_unread_articles(liste_articles)
     if method == 'last':
@@ -107,7 +127,7 @@ def cb_get_articles_id(request):
                                      == liste_articles[-1]]['embeddings'].item()
     else:
         query_encoding = articles_df[articles_df['user_id']
-                                       == user_id]['embeddings'].mean()
+                                     == user_id]['embeddings'].mean()
 
     selection['similarity_score'] = selection['embeddings'].apply(
         lambda x: 1 - distance.cosine(x, query_encoding))
