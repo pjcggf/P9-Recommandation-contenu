@@ -1,6 +1,7 @@
 """Prédiction des 5 articles les plus proches des derniers articles lu
     par le user."""
 from io import BytesIO
+import os
 import json
 import warnings
 import functions_framework
@@ -8,7 +9,10 @@ from google.cloud import bigquery, storage
 import pandas as pd
 from scipy.spatial import distance
 
-
+####
+# A définir seulement en test
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '../gcs_reader_cred.json'
+#####
 PROJECT = "p9-reco-contenu"
 DATASET = "p9_reco"
 
